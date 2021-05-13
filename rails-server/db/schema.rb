@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_05_13_145843) do
+ActiveRecord::Schema.define(version: 2021_05_13_150624) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
@@ -39,8 +39,18 @@ ActiveRecord::Schema.define(version: 2021_05_13_145843) do
     t.datetime "published_at"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.uuid "genre_id"
+    t.index ["genre_id"], name: "index_books_on_genre_id"
+  end
+
+  create_table "genres", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "title"
+    t.string "description"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
   end
 
   add_foreign_key "authorships", "authors"
   add_foreign_key "authorships", "books"
+  add_foreign_key "books", "genres"
 end
