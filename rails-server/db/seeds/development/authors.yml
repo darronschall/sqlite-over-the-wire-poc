@@ -1,0 +1,20 @@
+records:
+  - sprig_id: vicki_robin
+    first_name: Vicki
+    last_name: Robin
+
+  - sprig_id: joe_dominguez
+    first_name: Joe
+    last_name: Dominguez
+
+  - sprig_id: daniel_kahneman
+    first_name: Daniel
+    last_name: Kahneman
+
+  - sprig_id: olivier_sibony
+    first_name: Olivier
+    last_name: Sibony
+
+  - sprig_id: cass_sunstein
+    first_name: Cass R.
+    last_name: Sunstein

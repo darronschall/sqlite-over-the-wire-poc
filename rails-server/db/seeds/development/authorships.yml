@@ -1,0 +1,18 @@
+records:
+  - author_id: <%= sprig_record(Author, "vicki_robin").id %>
+    book_id: <%= sprig_record(Book, "your_money_or_your_life").id %>
+
+  - author_id: <%= sprig_record(Author, "joe_dominguez").id %>
+    book_id: <%= sprig_record(Book, "your_money_or_your_life").id %>
+
+  - author_id: <%= sprig_record(Author, "daniel_kahneman").id %>
+    book_id: <%= sprig_record(Book, "thinking_fast_and_slow").id %>
+
+  - author_id: <%= sprig_record(Author, "daniel_kahneman").id %>
+    book_id: <%= sprig_record(Book, "noise").id %>
+
+  - author_id: <%= sprig_record(Author, "olivier_sibony").id %>
+    book_id: <%= sprig_record(Book, "noise").id %>
+
+  - author_id: <%= sprig_record(Author, "cass_sunstein").id %>
+    book_id: <%= sprig_record(Book, "noise").id %>

@@ -1,0 +1,18 @@
+records:
+  - sprig_id: your_money_or_your_life
+    title: Your Money or Your Life
+    description: For more than twenty-five years, Your Money or Your Life has been considered the go-to book for taking back your life by changing your relationship with money. Hundreds of thousands of people have followed this nine-step program, learning to live more deliberately and meaningfully with Vicki Robin’s guidance. This fully revised and updated edition with a foreword by "the Frugal Guru" (New Yorker) Mr. Money Mustache is the ultimate makeover of this bestselling classic, ensuring that its time-tested wisdom applies to people of all ages and covers modern topics like investing in index funds, managing revenue streams like side hustles and freelancing, tracking your finances online, and having difficult conversations about money.
+    published_at: 2008-12-10
+    genre_id: <%= sprig_record(Genre, "personal_finance").id %>
+
+  - sprig_id: thinking_fast_and_slow
+    title: Thinking, Fast and Slow
+    description: In his mega bestseller, Thinking, Fast and Slow, Daniel Kahneman, the renowned psychologist and winner of the Nobel Prize in Economics, takes us on a groundbreaking tour of the mind and explains the two systems that drive the way we think.
+    published_at: 2011-10-25
+    genre_id: <%= sprig_record(Genre, "psychology").id %>
+
+  - sprig_id: noise
+    title: "Noise: A Flaw in Human Judgment"
+    description: From the Nobel Prize-winning author of Thinking, Fast and Slow and the coauthor of Nudge, a revolutionary exploration of why people make bad judgments and how to make better ones--"full of novel insights, rigorous evidence, engaging writing, and practical applications” (Adam Grant).
+    published_at: 2021-05-18
+    genre_id: <%= sprig_record(Genre, "psychology").id %>
