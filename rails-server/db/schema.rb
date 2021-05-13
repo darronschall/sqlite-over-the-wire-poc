@@ -10,10 +10,37 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_05_13_145456) do
+ActiveRecord::Schema.define(version: 2021_05_13_145843) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
 
+  create_table "authors", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "first_name"
+    t.string "last_name"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "authorships", id: false, force: :cascade do |t|
+    t.uuid "author_id", null: false
+    t.uuid "book_id", null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["author_id", "book_id"], name: "index_authorships_on_author_id_and_book_id", unique: true
+    t.index ["author_id"], name: "index_authorships_on_author_id"
+    t.index ["book_id"], name: "index_authorships_on_book_id"
+  end
+
+  create_table "books", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "title"
+    t.string "description"
+    t.datetime "published_at"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
+  add_foreign_key "authorships", "authors"
+  add_foreign_key "authorships", "books"
 end
