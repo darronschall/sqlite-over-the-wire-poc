@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SQLite3
 
 // MARK: Post-Processed Data Structures
 
@@ -150,6 +151,8 @@ func getBooksAsJSON(completionHandler: @escaping () -> Void) {
 
     let session = URLSession(configuration: URLSessionConfiguration.default)
     let task = session.dataTask(with: urlRequest) { data, response, error in
+        let start = DispatchTime.now()
+
         guard let data = data, error == nil else {
             fatalError ("error: \(error!)")
         }
@@ -161,6 +164,11 @@ func getBooksAsJSON(completionHandler: @escaping () -> Void) {
         response.included?.forEach { resource in
             _ = processResource(resource: resource)
         }
+
+        let end = DispatchTime.now()
+        let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds
+        let timeInterval = Double(nanoTime) / 1_000_000_000
+        print("json parsing time: \(timeInterval)")
 
         completionHandler()
     }
@@ -302,11 +310,184 @@ func processAuthor(resource: JSONAPIResource) -> Author {
     return author!
 }
 
+// MARK: Fetch and process SQLite3 API response
+
+func getBooksAsSQLite3(completionHandler: @escaping () -> Void) {
+    let url = URL(string: "http://127.0.0.1:3000/api/v1/books")!
+    var urlRequest = URLRequest(url: url)
+    urlRequest.httpMethod = "GET"
+    urlRequest.setValue("application/x-sqlite3", forHTTPHeaderField: "Accept")
+
+    let session = URLSession(configuration: URLSessionConfiguration.default)
+    let task = session.dataTask(with: urlRequest) { data, response, error in
+        let start = DispatchTime.now()
+
+        guard let data = data, error == nil else {
+            fatalError ("error: \(error!)")
+        }
+
+        let path = FileManager.default.currentDirectoryPath
+        let tempDatabaseUrl = URL(string: "file://\(path)")!.appendingPathComponent("temp_data.sqlite")
+
+        if FileManager.default.fileExists(atPath: tempDatabaseUrl.path) {
+            try! FileManager.default.removeItem(at: tempDatabaseUrl)
+        }
+
+        try! data.write(to: tempDatabaseUrl)
+
+        var db: OpaquePointer?
+        if sqlite3_open(tempDatabaseUrl.path, &db) != SQLITE_OK { // error mostly because of corrupt database
+            fatalError("error opening database \(tempDatabaseUrl.absoluteString)")
+        }
+
+        populateGenres(from: db!)
+        populateBooks(from: db!)
+        populateAuthors(from: db!)
+        populateAuthorships(from: db!)
+
+        if sqlite3_close(db) != SQLITE_OK {
+            fatalError("error closing database \(tempDatabaseUrl.absoluteString)")
+        }
+
+        try! FileManager.default.removeItem(at: tempDatabaseUrl)
+
+        let end = DispatchTime.now()
+        let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds
+        let timeInterval = Double(nanoTime) / 1_000_000_000
+        print("sqlite parsing time: \(timeInterval)")
+
+        completionHandler()
+    }
+    task.resume()
+}
+
+func populateGenres(from db: OpaquePointer) {
+    let genresQuerySql = "SELECT * FROM genres;"
+    var queryStatement: OpaquePointer?
+    if sqlite3_prepare_v2(db, genresQuerySql, -1, &queryStatement, nil) == SQLITE_OK {
+        while (sqlite3_step(queryStatement) == SQLITE_ROW) {
+            let id = String(cString: sqlite3_column_text(queryStatement, 0)!)
+            let title = String(cString: sqlite3_column_text(queryStatement, 1)!)
+            let description = String(cString: sqlite3_column_text(queryStatement, 2)!)
+
+            let genre = Genre(id: UUID(uuidString: id)!)
+            genre.title = title
+            genre.description = description
+            genre.books = [] // We'll populate this whe we process Books
+            genres.append(genre)
+        }
+    } else {
+        let errorMessage = String(cString: sqlite3_errmsg(db))
+        print("\nError populating genres: query is not prepared \(errorMessage)")
+    }
+    sqlite3_finalize(queryStatement)
+}
+
+func populateBooks(from db: OpaquePointer) {
+    let booksQuerySql = "SELECT * FROM books;"
+    var queryStatement: OpaquePointer?
+    if sqlite3_prepare_v2(db, booksQuerySql, -1, &queryStatement, nil) == SQLITE_OK {
+        while (sqlite3_step(queryStatement) == SQLITE_ROW) {
+            let id = String(cString: sqlite3_column_text(queryStatement, 0)!)
+            let title = String(cString: sqlite3_column_text(queryStatement, 1)!)
+            let description = String(cString: sqlite3_column_text(queryStatement, 2)!)
+            let publishedAt = String(cString: sqlite3_column_text(queryStatement, 3)!)
+            let genreId = String(cString: sqlite3_column_text(queryStatement, 4)!)
+
+            let book = Book(id: UUID(uuidString: id)!)
+            book.title = title
+            book.description = description
+            book.publishedAt = dateFormatter.date(from: publishedAt)
+            // We know that all Genres are already loaded at this point
+            book.genre = findById(array: genres, id: genreId)
+            book.authors = [] // We'll populate this later via authorships
+            books.append(book)
+
+            // Create the circular reference while we're here
+            book.genre!.books!.append(book)
+        }
+    } else {
+        let errorMessage = String(cString: sqlite3_errmsg(db))
+        print("\nError populating books: query is not prepared \(errorMessage)")
+    }
+    sqlite3_finalize(queryStatement)
+}
+
+func populateAuthors(from db: OpaquePointer) {
+    let authorsQuerySql = "SELECT * FROM authors;"
+    var queryStatement: OpaquePointer?
+    if sqlite3_prepare_v2(db, authorsQuerySql, -1, &queryStatement, nil) == SQLITE_OK {
+        while (sqlite3_step(queryStatement) == SQLITE_ROW) {
+            let id = String(cString: sqlite3_column_text(queryStatement, 0)!)
+            let firstName = String(cString: sqlite3_column_text(queryStatement, 1)!)
+            let lastName = String(cString: sqlite3_column_text(queryStatement, 2)!)
+
+            let author = Author(id: UUID(uuidString: id)!)
+            author.firstName = firstName
+            author.lastName = lastName
+            author.books = [] // We'll populate this later via authorships
+            authors.append(author)
+        }
+    } else {
+        let errorMessage = String(cString: sqlite3_errmsg(db))
+        print("\nError populating authors: query is not prepared \(errorMessage)")
+    }
+    sqlite3_finalize(queryStatement)
+}
+
+func populateAuthorships(from db: OpaquePointer) {
+    let authorshipsQuerySql = "SELECT * FROM authorships;"
+    var queryStatement: OpaquePointer?
+    if sqlite3_prepare_v2(db, authorshipsQuerySql, -1, &queryStatement, nil) == SQLITE_OK {
+        while (sqlite3_step(queryStatement) == SQLITE_ROW) {
+            let authorId = String(cString: sqlite3_column_text(queryStatement, 0)!)
+            let bookId = String(cString: sqlite3_column_text(queryStatement, 1)!)
+
+            let author = findById(array: authors, id: authorId)!
+            let book = findById(array: books, id: bookId)!
+
+            author.books!.append(book)
+            book.authors!.append(author)
+        }
+    } else {
+        let errorMessage = String(cString: sqlite3_errmsg(db))
+        print("\nError populating authorships: query is not prepared \(errorMessage)")
+    }
+    sqlite3_finalize(queryStatement)
+}
+
+// MARK: Timer helper
+
+func measureElapsedTime(_ closure: (@escaping () -> Void) -> Void) {
+    // Re-set to pristine post-processing internal object graph
+    genres = []
+    books = []
+    authors = []
+
+    // Keep alive to wait for the results of the processing
+    let semaphore = DispatchSemaphore(value: 0)
+
+    let start = DispatchTime.now()
+
+    closure {
+        semaphore.signal()
+    }
+    semaphore.wait()
+
+    let end = DispatchTime.now()
+    let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds
+    let timeInterval = Double(nanoTime) / 1_000_000_000
+    print("elapsed time: \(timeInterval)")
+}
+
 // MARK: Main
 
-let semaphore = DispatchSemaphore.init(value: 0)
-getBooksAsJSON {
-    semaphore.signal()
+for _ in 0..<10 {
+    measureElapsedTime(getBooksAsJSON)
 }
-// Wait for the async call to complete before program terminates
-semaphore.wait()
+
+print("----------")
+
+for _ in 0..<10 {
+    measureElapsedTime(getBooksAsSQLite3)
+}
