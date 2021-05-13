@@ -23,6 +23,7 @@ gem "bootsnap", ">= 1.4.4", require: false
 
 # Serialize models as JSON-API. We'll benchmark against this. See: https://github.com/jsonapi-serializer/jsonapi-serializer
 gem "jsonapi-serializer"
+gem "sqlite3"
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console

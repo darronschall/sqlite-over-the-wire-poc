@@ -158,6 +158,7 @@ GEM
       actionpack (>= 4.0)
       activesupport (>= 4.0)
       sprockets (>= 3.0.0)
+    sqlite3 (1.4.2)
     standard (1.1.1)
       rubocop (= 1.14.0)
       rubocop-performance (= 1.11.2)
@@ -183,6 +184,7 @@ DEPENDENCIES
   rails (~> 6.1.3, >= 6.1.3.2)
   sprig
   spring
+  sqlite3
   standard
   tzinfo-data
 
